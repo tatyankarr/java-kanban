@@ -1,3 +1,5 @@
+package com.yandex.app.model;
+
 import java.util.ArrayList;
 
 public class Epic extends Task {
@@ -8,7 +10,7 @@ public class Epic extends Task {
     }
 
     public ArrayList<Integer> getSubtaskId() {
-        return subtaskId;
+        return new ArrayList<>(subtaskId);
     }
 
     public void addSubtask(int id) {
@@ -25,8 +27,8 @@ public class Epic extends Task {
 
     @Override
     public String toString() {
-        return "Эпик " + id + ": {" + name +
-                " (" + description + "), статус: " + status +
+        return "Эпик " + getId() + ": {" + getName() +
+                " (" + getDescription() + "), статус: " + getStatus() +
                 '}';
     }
 }

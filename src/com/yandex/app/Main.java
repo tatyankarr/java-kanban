@@ -1,10 +1,16 @@
+package com.yandex.app;
+
+import com.yandex.app.model.*;
+import com.yandex.app.enums.Status;
+import com.yandex.app.service.TaskManager;
+
 public class Main {
 
     public static void main(String[] args) {
         TaskManager manager = new TaskManager();
 
         Task task1 = new Task("Починить кран", "Позвать сантехника", Status.NEW);
-        Task task2 = new Task ("Купить продукты", "Список: хлеб, молоко, сыр", Status.NEW);
+        Task task2 = new Task("Купить продукты", "Список: хлеб, молоко, сыр", Status.NEW);
         manager.createTask(task1);
         manager.createTask(task2);
 
