@@ -31,6 +31,14 @@ public class Main {
 
         printList(manager);
 
+        manager.getTask(task1.getId());
+        manager.getTask(task2.getId());
+        manager.getEpic(epic1.getId());
+        manager.getSubtask(subtask1_1.getId());
+        manager.getSubtask(subtask1_2.getId());
+        manager.getEpic(epic2.getId());
+        manager.getSubtask(subtask2_1.getId());
+
         System.out.println();
         System.out.println("---История просмотров:---");
         for (Task task : manager.getHistory()) {

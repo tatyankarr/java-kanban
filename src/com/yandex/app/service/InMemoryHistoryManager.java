@@ -7,10 +7,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class InMemoryHistoryManager implements HistoryManager {
-    private final ArrayList<Task> history = new ArrayList<>();
+    private final List<Task> history = new ArrayList<>();
 
     @Override
-    public void add (Task task) {
+    public void add(Task task) {
         if (task == null) {
             return;
         }

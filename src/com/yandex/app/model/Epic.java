@@ -1,15 +1,16 @@
 package com.yandex.app.model;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class Epic extends Task {
-    private final ArrayList<Integer> subtaskId = new ArrayList<>();
+    private final List<Integer> subtaskId = new ArrayList<>();
 
     public Epic(String name, String description) {
         super(name, description);
     }
 
-    public ArrayList<Integer> getSubtaskId() {
+    public List<Integer> getSubtaskId() {
         return new ArrayList<>(subtaskId);
     }
 
