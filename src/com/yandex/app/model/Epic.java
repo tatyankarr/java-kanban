@@ -13,9 +13,14 @@ public class Epic extends Task {
         return new ArrayList<>(subtaskId);
     }
 
-    public void addSubtask(int id) {
-        subtaskId.add(id);
+    public void addSubtask(int subtaskId) {
+        if (this.getId() == subtaskId) {
+            System.out.println("Epic не может быть своим же подзадачным ID: " + subtaskId);
+            return;
+        }
+        this.subtaskId.add(subtaskId);
     }
+
 
     public void clearSubtask() {
         subtaskId.clear();
@@ -31,4 +36,5 @@ public class Epic extends Task {
                 " (" + getDescription() + "), статус: " + getStatus() +
                 '}';
     }
+
 }

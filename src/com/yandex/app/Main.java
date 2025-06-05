@@ -2,12 +2,13 @@ package com.yandex.app;
 
 import com.yandex.app.model.*;
 import com.yandex.app.enums.Status;
-import com.yandex.app.service.TaskManager;
+import com.yandex.app.service.Managers;
+import com.yandex.app.interfaces.TaskManager;
 
 public class Main {
 
     public static void main(String[] args) {
-        TaskManager manager = new TaskManager();
+        TaskManager manager = Managers.getDefault();
 
         Task task1 = new Task("Починить кран", "Позвать сантехника", Status.NEW);
         Task task2 = new Task("Купить продукты", "Список: хлеб, молоко, сыр", Status.NEW);
@@ -30,6 +31,12 @@ public class Main {
 
         printList(manager);
 
+        System.out.println();
+        System.out.println("---История просмотров:---");
+        for (Task task : manager.getHistory()) {
+            System.out.println(task);
+        }
+
         task1.setStatus(Status.DONE);
         manager.updateTask(task1);
 
@@ -43,8 +50,8 @@ public class Main {
         System.out.println("CТАТУСЫ ЗАДАЧ ИЗМЕНЕНЫ.");
         printList(manager);
 
-        manager.removeEpic(2);
-        manager.removeSubtask(2);
+        manager.removeEpic(6);
+        manager.removeSubtask(4);
 
         System.out.println();
         System.out.println("ЗАДАЧИ УДАЛЕНЫ.");
@@ -62,10 +69,9 @@ public class Main {
         for (Epic epic : manager.getAllEpics()) {
             System.out.println(epic);
             for (Integer subId : epic.getSubtaskId()) {
-                Subtask subtask = manager.getSubtask(subId);
+                Subtask subtask = manager.getSubtaskWithoutHistory(subId);
                 System.out.println(" - " + subtask);
             }
         }
     }
-
 }

@@ -3,7 +3,15 @@ package com.yandex.app.model;
 import com.yandex.app.enums.Status;
 
 public class Subtask extends Task {
-    private final int epicId;
+    private int epicId;
+
+    public void setEpicId(int epicId) {
+        if (this.getId() == epicId) {
+            System.out.println("Subtask не может быть своим же эпиком: " + epicId);
+            return;
+        }
+        this.epicId = epicId;
+    }
 
     public Subtask(String name, String description, Status status, int epicId) {
         super(name, description, status);
