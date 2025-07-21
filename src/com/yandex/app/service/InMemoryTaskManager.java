@@ -26,7 +26,7 @@ public class InMemoryTaskManager implements TaskManager {
         return idCounter++;
     }
 
-    private void updateEpicStatus (int epicId) {
+    private void updateEpicStatus(int epicId) {
         Epic epic = epics.get(epicId);
         List<Integer> subIds = epic.getSubtaskId();
 
@@ -94,10 +94,11 @@ public class InMemoryTaskManager implements TaskManager {
     @Override
     public void removeTask(int id) {
         tasks.remove(id);
+        historyManager.remove(id);
     }
 
     @Override
-    public void createEpic (Epic epic) {
+    public void createEpic(Epic epic) {
         epic.setId(generateId());
         epics.put(epic.getId(), epic);
     }
@@ -142,7 +143,9 @@ public class InMemoryTaskManager implements TaskManager {
         if (epic != null) {
             for (int subId : epic.getSubtaskId()) {
                 subtasks.remove(subId);
+                historyManager.remove(subId);
             }
+            historyManager.remove(id);
         }
     }
 
@@ -201,6 +204,7 @@ public class InMemoryTaskManager implements TaskManager {
                 epic.deleteSubstackId(id);
                 updateEpicStatus(epic.getId());
             }
+            historyManager.remove(id);
         }
     }
 
