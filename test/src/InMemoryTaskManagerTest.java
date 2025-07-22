@@ -114,23 +114,6 @@ class InMemoryTaskManagerTest {
     }
 
     @Test
-    void getHistoryShouldReturnTasksInOrderOfViewing() {
-        Task task1 = new Task("Task 1", "Desc 1", Status.NEW);
-        Task task2 = new Task("Task 2", "Desc 2", Status.NEW);
-        taskManager.createTask(task1);
-        taskManager.createTask(task2);
-
-        taskManager.getTask(task1.getId());
-        taskManager.getTask(task2.getId());
-        taskManager.getTask(task1.getId());
-
-        List<Task> history = taskManager.getHistory();
-        assertEquals(2, history.size());
-        assertEquals(task2, history.get(0));
-        assertEquals(task1, history.get(1));
-    }
-
-    @Test
     void shouldAddAndFindTasksOfDifferentTypesById() {
         Task task = new Task("Task 1", "Description 1", Status.NEW);
         taskManager.createTask(task);
@@ -159,5 +142,27 @@ class InMemoryTaskManagerTest {
         assertEquals(subtaskId, foundSubtask.getId());
         assertEquals("Subtask 1", foundSubtask.getName());
         assertEquals(epicId, foundSubtask.getEpicId());
+    }
+
+    @Test
+    void revisitMovesToEnd() {
+        Task task1 = new Task("Task 1", "Desc 1", Status.NEW);
+        Task task2 = new Task("Task 2", "Desc 2", Status.NEW);
+        Task task3 = new Task("Task 3", "Desc 3", Status.NEW);
+        taskManager.createTask(task1);
+        taskManager.createTask(task2);
+        taskManager.createTask(task3);
+
+        taskManager.getTask(task1.getId());
+        taskManager.getTask(task2.getId());
+        taskManager.getTask(task3.getId());
+
+        taskManager.getTask(task1.getId());
+
+        List<Task> history = taskManager.getHistory();
+        assertEquals(3, history.size());
+        assertEquals(task2, history.get(0));
+        assertEquals(task3, history.get(1));
+        assertEquals(task1, history.get(2));
     }
 }
