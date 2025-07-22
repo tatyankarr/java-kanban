@@ -1,4 +1,4 @@
-package com.yandex.app.tests;
+package src;
 
 import static org.junit.jupiter.api.Assertions.*;
 import com.yandex.app.model.Epic;

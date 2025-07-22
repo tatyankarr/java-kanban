@@ -1,4 +1,4 @@
-package com.yandex.app.tests;
+package src;
 
 import com.yandex.app.model.Epic;
 import com.yandex.app.service.InMemoryHistoryManager;
