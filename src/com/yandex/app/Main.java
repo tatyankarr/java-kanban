@@ -3,12 +3,16 @@ package com.yandex.app;
 import com.yandex.app.model.*;
 import com.yandex.app.enums.Status;
 import com.yandex.app.service.Managers;
+import com.yandex.app.service.FileBackedTaskManager;
 import com.yandex.app.interfaces.TaskManager;
+
+import java.io.File;
 
 public class Main {
 
     public static void main(String[] args) {
-        TaskManager manager = Managers.getDefault();
+        File file = new File("tasks.csv");
+        TaskManager manager = new FileBackedTaskManager(file, Managers.getDefaultHistory());
 
         Task task1 = new Task("Починить кран", "Позвать сантехника", Status.NEW);
         Task task2 = new Task("Купить продукты", "Список: хлеб, молоко, сыр", Status.NEW);
@@ -30,6 +34,9 @@ public class Main {
         manager.createSubtask(subtask1ForEpic2);
 
         printList(manager);
+        TaskManager loadedManager = FileBackedTaskManager.loadFromFile(file);
+        System.out.println("\n--- Восстановленный менеджер ---");
+        printList(loadedManager);
 
         manager.getTask(task1.getId());
         manager.getTask(task2.getId());

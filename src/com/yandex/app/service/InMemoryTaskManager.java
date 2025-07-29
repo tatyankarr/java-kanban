@@ -59,6 +59,26 @@ public class InMemoryTaskManager implements TaskManager {
         }
     }
 
+    protected Map<Integer, Task> getTasksMap() {
+        return tasks;
+    }
+
+    protected Map<Integer, Epic> getEpicsMap() {
+        return epics;
+    }
+
+    protected Map<Integer, Subtask> getSubtasksMap() {
+        return subtasks;
+    }
+
+    protected void setIdCounter(int value) {
+        idCounter = value;
+    }
+
+    protected int getIdCounter() {
+        return idCounter;
+    }
+
     @Override
     public void createTask(Task task) {
         task.setId(generateId());
