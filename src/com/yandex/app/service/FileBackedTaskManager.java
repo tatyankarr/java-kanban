@@ -40,11 +40,25 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
 
         try {
             List<String> lines = Files.readAllLines(file.toPath());
+
             for (int i = 1; i < lines.size(); i++) {
                 String line = lines.get(i);
                 if (line.isBlank()) continue;
+
                 Task task = taskFromString(line);
-                manager.restoreTask(task);
+                if (task instanceof Epic) {
+                    manager.restoreTask(task);
+                }
+            }
+
+            for (int i = 1; i < lines.size(); i++) {
+                String line = lines.get(i);
+                if (line.isBlank()) continue;
+
+                Task task = taskFromString(line);
+                if (!(task instanceof Epic)) {
+                    manager.restoreTask(task);
+                }
             }
         } catch (IOException e) {
             throw new ManagerSaveException("Ошибка при загрузке данных из файла", e);
@@ -54,6 +68,10 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
 
     private void restoreTask(Task task) {
         int id = task.getId();
+
+        if (getTask(id) != null || getEpic(id) != null || getSubtask(id) != null) {
+            return;
+        }
 
         if (task instanceof Subtask) {
             getSubtasksMap().put(id, (Subtask) task);
@@ -126,35 +144,48 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         save();
     }
 
-    private static String taskToString(Task task) {
-        String type;
-        if (task instanceof Epic) {
-            type = "EPIC";
-        } else if (task instanceof Subtask) {
-            type = "SUBTASK";
-        } else {
-            type = "TASK";
+    private static String escapeCsv(String value) {
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            value = value.replace("\"", "\"\"");
+            return "\"" + value + "\"";
         }
+        return value;
+    }
 
-        String epicId = task instanceof Subtask ? String.valueOf(((Subtask) task).getEpicId()) : "";
+    private static String taskToString(Task task) {
+        String type = (task instanceof Epic) ? "EPIC" :
+                (task instanceof Subtask) ? "SUBTASK" : "TASK";
 
-        return String.format("%d,%s,%s,%s,%s,%s",
-                task.getId(),
+        String epicId = (task instanceof Subtask) ? String.valueOf(((Subtask) task).getEpicId()) : "";
+        String name = escapeCsv(task.getName());
+        String description = escapeCsv(task.getDescription());
+        String status = (task.getStatus() != null) ? task.getStatus().toString() : "NEW";
+
+        return String.join(",",
+                String.valueOf(task.getId()),
                 type,
-                task.getName(),
-                task.getStatus(),
-                task.getDescription(),
+                name,
+                status,
+                description,
                 epicId
         );
     }
 
     private static Task taskFromString(String value) {
-        String[] fields = value.split(",");
-        int id = Integer.parseInt(fields[0]);
-        TaskType type = TaskType.valueOf(fields[1]);
-        String name = fields[2];
-        Status status = Status.valueOf(fields[3]);
-        String description = fields[4];
+        List<String> fields = parseCsvLine(value);
+
+        if (fields.size() < 6) {
+            throw new ManagerSaveException(
+                    "Ошибка разбора строки задачи: ожидалось 6 полей, но получено " +
+                            fields.size() + ". Строка: " + value
+            );
+        }
+
+        int id = Integer.parseInt(fields.get(0));
+        TaskType type = TaskType.valueOf(fields.get(1));
+        String name = fields.get(2);
+        Status status = Status.valueOf(fields.get(3));
+        String description = fields.get(4);
 
         switch (type) {
             case TASK:
@@ -167,12 +198,45 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                 epic.setStatus(status);
                 return epic;
             case SUBTASK:
-                int epicId = Integer.parseInt(fields[5]);
+                int epicId = Integer.parseInt(fields.get(5));
                 Subtask subtask = new Subtask(name, description, status, epicId);
                 subtask.setId(id);
                 return subtask;
             default:
                 throw new IllegalArgumentException("Неизвестный тип задачи: " + type);
         }
+    }
+
+    private static List<String> parseCsvLine(String line) {
+        List<String> fields = new ArrayList<>();
+        boolean inQuotes = false;
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (inQuotes) {
+                if (c == '\"') {
+                    if (i + 1 < line.length() && line.charAt(i + 1) == '\"') {
+                        sb.append('\"');
+                        i++;
+                    } else {
+                        inQuotes = false;
+                    }
+                } else {
+                    sb.append(c);
+                }
+            } else {
+                if (c == '\"') {
+                    inQuotes = true;
+                } else if (c == ',') {
+                    fields.add(sb.toString());
+                    sb.setLength(0);
+                } else {
+                    sb.append(c);
+                }
+            }
+        }
+        fields.add(sb.toString());
+        return fields;
     }
 }
