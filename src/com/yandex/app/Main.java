@@ -3,12 +3,16 @@ package com.yandex.app;
 import com.yandex.app.model.*;
 import com.yandex.app.enums.Status;
 import com.yandex.app.service.Managers;
+import com.yandex.app.service.FileBackedTaskManager;
 import com.yandex.app.interfaces.TaskManager;
+
+import java.io.File;
 
 public class Main {
 
     public static void main(String[] args) {
-        TaskManager manager = Managers.getDefault();
+        File file = new File("tasks.csv");
+        TaskManager manager = new FileBackedTaskManager(file, Managers.getDefaultHistory());
 
         Task task1 = new Task("Починить кран", "Позвать сантехника", Status.NEW);
         Task task2 = new Task("Купить продукты", "Список: хлеб, молоко, сыр", Status.NEW);
@@ -18,26 +22,31 @@ public class Main {
         Epic epic1 = new Epic("Подготовка к отпуску", "Сделать всё до поездки");
         manager.createEpic(epic1);
 
-        Subtask subtask1_1 = new Subtask("Купить билеты", "Авиабилеты туда-обратно", Status.NEW, epic1.getId());
-        Subtask subtask1_2 = new Subtask("Собрать вещи", "Чемодан и документы", Status.NEW, epic1.getId());
-        manager.createSubtask(subtask1_1);
-        manager.createSubtask(subtask1_2);
+        Subtask subtask1ForEpic1 = new Subtask("Купить билеты", "Авиабилеты туда-обратно", Status.NEW, epic1.getId());
+        Subtask subtask2ForEpic1 = new Subtask("Собрать вещи", "Чемодан и документы", Status.NEW, epic1.getId());
+        manager.createSubtask(subtask1ForEpic1);
+        manager.createSubtask(subtask2ForEpic1);
 
         Epic epic2 = new Epic("Переезд", "Подготовка к переезду");
         manager.createEpic(epic2);
 
-        Subtask subtask2_1 = new Subtask("Упаковать вещи", "Сложить вещи в коробки", Status.NEW, epic2.getId());
-        manager.createSubtask(subtask2_1);
+        Subtask subtask1ForEpic2 = new Subtask("Упаковать вещи", "Сложить вещи в коробки", Status.NEW, epic2.getId());
+        manager.createSubtask(subtask1ForEpic2);
 
         printList(manager);
+        TaskManager loadedManager = FileBackedTaskManager.loadFromFile(file);
+        System.out.println("\n--- Восстановленный менеджер ---");
+        printList(loadedManager);
 
         manager.getTask(task1.getId());
         manager.getTask(task2.getId());
+        manager.getTask(task1.getId());
         manager.getEpic(epic1.getId());
-        manager.getSubtask(subtask1_1.getId());
-        manager.getSubtask(subtask1_2.getId());
+        manager.getSubtask(subtask1ForEpic1.getId());
+        manager.getSubtask(subtask2ForEpic1.getId());
         manager.getEpic(epic2.getId());
-        manager.getSubtask(subtask2_1.getId());
+        manager.getSubtask(subtask1ForEpic2.getId());
+        manager.getSubtask(subtask2ForEpic1.getId());
 
         System.out.println();
         System.out.println("---История просмотров:---");
@@ -48,11 +57,11 @@ public class Main {
         task1.setStatus(Status.DONE);
         manager.updateTask(task1);
 
-        subtask1_2.setStatus(Status.IN_PROGRESS);
-        manager.updateSubtask(subtask1_2);
+        subtask2ForEpic1.setStatus(Status.IN_PROGRESS);
+        manager.updateSubtask(subtask2ForEpic1);
 
-        subtask2_1.setStatus(Status.DONE);
-        manager.updateSubtask(subtask2_1);
+        subtask1ForEpic2.setStatus(Status.DONE);
+        manager.updateSubtask(subtask1ForEpic2);
 
         System.out.println();
         System.out.println("CТАТУСЫ ЗАДАЧ ИЗМЕНЕНЫ.");
@@ -64,6 +73,12 @@ public class Main {
         System.out.println();
         System.out.println("ЗАДАЧИ УДАЛЕНЫ.");
         printList(manager);
+
+        System.out.println();
+        System.out.println("---История просмотров:---");
+        for (Task task : manager.getHistory()) {
+            System.out.println(task);
+        }
     }
 
     private static void printList(TaskManager manager) {
