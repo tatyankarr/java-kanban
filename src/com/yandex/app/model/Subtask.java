@@ -7,8 +7,7 @@ public class Subtask extends Task {
 
     public void setEpicId(int epicId) {
         if (this.getId() == epicId) {
-            System.out.println("Subtask не может быть своим же эпиком: " + epicId);
-            return;
+            throw new IllegalArgumentException("Subtask не может быть своим же эпиком: " + epicId);
         }
         this.epicId = epicId;
     }
@@ -26,6 +25,8 @@ public class Subtask extends Task {
     public String toString() {
         return "Подзадача " + getId() + ": {" + getName() +
                 " (" + getDescription() + "), статус: " + getStatus() +
-                '}';
+                ", начало: " + getStartTime() +
+                ", продолжительность: " + getDuration().toMinutes() + " мин" +
+                ", эпик: " + getEpicId() + '}';
     }
 }

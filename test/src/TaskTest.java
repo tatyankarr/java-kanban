@@ -1,4 +1,4 @@
-package com.yandex.app.tests;
+package src;
 
 import com.yandex.app.service.InMemoryHistoryManager;
 import com.yandex.app.service.InMemoryTaskManager;
@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import com.yandex.app.enums.Status;
 import com.yandex.app.model.Task;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -77,5 +79,21 @@ class TaskTest {
         assertEquals(originalStatus, storedTask.getStatus(), "Статус задачи должен остаться неизменным");
 
         assertTrue(storedTask.getId() > 0, "Id задачи должен быть сгенерирован");
+    }
+
+    @Test
+    void shouldCalculateEndTime() {
+        LocalDateTime start = LocalDateTime.now();
+        Task task = new Task("Task", "Desc", Status.NEW);
+        task.setStartTime(start);
+        task.setDuration(Duration.ofHours(2));
+
+        assertEquals(start.plusHours(2), task.getEndTime(), "Неверное время окончания");
+    }
+
+    @Test
+    void shouldReturnNullForNoTime() {
+        Task task = new Task("Task", "Desc", Status.NEW);
+        assertNull(task.getEndTime(), "Должно быть null при отсутствии времени");
     }
 }

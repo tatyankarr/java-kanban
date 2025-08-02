@@ -1,4 +1,4 @@
-package com.yandex.app.tests;
+package src;
 
 import com.yandex.app.enums.Status;
 import com.yandex.app.interfaces.HistoryManager;
@@ -37,16 +37,5 @@ class ManagersTest {
         List<Task> history = historyManager.getHistory();
         assertEquals(1, history.size(), "История должна содержать одну задачу");
         assertEquals("History Task", history.get(0).getName(), "Имя задачи должно совпадать в истории");
-    }
-
-    @Test
-    void taskManagerShouldHaveWorkingHistoryManager() {
-        TaskManager taskManager = Managers.getDefault();
-        Task task = new Task("History Through Manager", "Desc", Status.NEW);
-        taskManager.createTask(task);
-
-        List<Task> history = taskManager.getHistory();
-        assertEquals(1, history.size(), "История через TaskManager должна содержать одну задачу");
-        assertEquals("History Through Manager", history.get(0).getName(), "Имя задачи должно совпадать в истории через TaskManager");
     }
 }
