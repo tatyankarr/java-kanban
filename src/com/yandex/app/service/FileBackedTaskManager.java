@@ -7,6 +7,8 @@ import com.yandex.app.interfaces.HistoryManager;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.*;
 
 public class FileBackedTaskManager extends InMemoryTaskManager {
@@ -19,7 +21,7 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
 
     protected void save() {
         try (Writer writer = new FileWriter(file)) {
-            writer.write("id,type,name,status,description,epic\n");
+            writer.write("id,type,name,status,description,epic,duration,startTime\n");
             for (Task task : getAllTasks()) {
                 writer.write(taskToString(task) + "\n");
             }
@@ -63,6 +65,11 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         } catch (IOException e) {
             throw new ManagerSaveException("Ошибка при загрузке данных из файла", e);
         }
+
+        for (Epic epic : manager.getAllEpics()) {
+            epic.updateTimeFields(manager.getSubtasksMap());
+        }
+
         return manager;
     }
 
@@ -88,6 +95,10 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         if (id >= getIdCounter()) {
             setIdCounter(id + 1);
         }
+    }
+
+    protected Map<Integer, Subtask> getSubtasksMap() {
+        return super.getSubtasksMap();
     }
 
     @Override
@@ -160,6 +171,8 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         String name = escapeCsv(task.getName());
         String description = escapeCsv(task.getDescription());
         String status = (task.getStatus() != null) ? task.getStatus().toString() : "NEW";
+        String durationStr = task.getDuration() != null ? String.valueOf(task.getDuration().toMinutes()) : "";
+        String startTimeStr = task.getStartTime() != null ? task.getStartTime().toString() : "";
 
         return String.join(",",
                 String.valueOf(task.getId()),
@@ -167,16 +180,18 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                 name,
                 status,
                 description,
-                epicId
+                epicId,
+                durationStr,
+                startTimeStr
         );
     }
 
     private static Task taskFromString(String value) {
         List<String> fields = parseCsvLine(value);
 
-        if (fields.size() < 6) {
+        if (fields.size() < 8) {
             throw new ManagerSaveException(
-                    "Ошибка разбора строки задачи: ожидалось 6 полей, но получено " +
+                    "Ошибка разбора строки задачи: ожидалось 8 полей, но получено " +
                             fields.size() + ". Строка: " + value
             );
         }
@@ -186,21 +201,30 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
         String name = fields.get(2);
         Status status = Status.valueOf(fields.get(3));
         String description = fields.get(4);
+        long durationMinutes = fields.get(6).isEmpty() ? 0 : Long.parseLong(fields.get(6));
+        Duration duration = Duration.ofMinutes(durationMinutes);
+        LocalDateTime startTime = fields.get(7).isEmpty() ? null : LocalDateTime.parse(fields.get(7));
 
         switch (type) {
             case TASK:
                 Task task = new Task(name, description, status);
                 task.setId(id);
+                task.setDuration(duration);
+                task.setStartTime(startTime);
                 return task;
             case EPIC:
                 Epic epic = new Epic(name, description);
                 epic.setId(id);
                 epic.setStatus(status);
+                epic.setDuration(duration);
+                epic.setStartTime(startTime);
                 return epic;
             case SUBTASK:
                 int epicId = Integer.parseInt(fields.get(5));
                 Subtask subtask = new Subtask(name, description, status, epicId);
                 subtask.setId(id);
+                subtask.setDuration(duration);
+                subtask.setStartTime(startTime);
                 return subtask;
             default:
                 throw new IllegalArgumentException("Неизвестный тип задачи: " + type);

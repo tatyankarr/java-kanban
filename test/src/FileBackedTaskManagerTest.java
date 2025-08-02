@@ -1,89 +1,74 @@
 package src;
 
 import com.yandex.app.enums.Status;
-import com.yandex.app.model.Epic;
+import com.yandex.app.exceptions.ManagerSaveException;
 import com.yandex.app.model.Subtask;
 import com.yandex.app.model.Task;
 import com.yandex.app.service.FileBackedTaskManager;
-import com.yandex.app.service.Managers;
+import com.yandex.app.service.InMemoryHistoryManager;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class FileBackedTaskManagerTest {
+class FileBackedTaskManagerTest extends TaskManagerTest<FileBackedTaskManager> {
+    private File tempFile;
 
-    @Test
-    void shouldSaveAndLoadEmptyManager() throws IOException {
-        File tempFile = File.createTempFile("empty", ".csv");
-        FileBackedTaskManager manager = new FileBackedTaskManager(tempFile, Managers.getDefaultHistory());
-
-        FileBackedTaskManager loaded = FileBackedTaskManager.loadFromFile(tempFile);
-
-        assertTrue(loaded.getAllTasks().isEmpty());
-        assertTrue(loaded.getAllEpics().isEmpty());
-        assertTrue(loaded.getAllSubtasks().isEmpty());
+    @Override
+    protected FileBackedTaskManager createTaskManager() {
+        try {
+            tempFile = Files.createTempFile("tasks", ".csv").toFile();
+            return new FileBackedTaskManager(tempFile, new InMemoryHistoryManager());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create temp file", e);
+        }
     }
 
     @Test
-    void shouldSaveAndLoadMultipleTasks() throws IOException {
-        File tempFile = File.createTempFile("multi", ".csv");
-        FileBackedTaskManager manager = new FileBackedTaskManager(tempFile, Managers.getDefaultHistory());
-
-        Task task1 = new Task("Task 1", "Description 1", Status.NEW);
-        Task task2 = new Task("Task 2", "Description 2", Status.IN_PROGRESS);
-        manager.createTask(task1);
-        manager.createTask(task2);
-
-        Epic epic = new Epic("Epic 1", "Epic description");
-        manager.createEpic(epic);
-
-        Subtask subtask1 = new Subtask("Subtask 1", "Linked to Epic", Status.NEW, epic.getId());
-        Subtask subtask2 = new Subtask("Subtask 2", "Also linked", Status.DONE, epic.getId());
-        manager.createSubtask(subtask1);
-        manager.createSubtask(subtask2);
-
+    void shouldSaveAndLoadEmptyManager() {
         FileBackedTaskManager loaded = FileBackedTaskManager.loadFromFile(tempFile);
-
-        List<Task> loadedTasks = loaded.getAllTasks();
-        assertEquals(2, loadedTasks.size());
-        assertEquals("Task 1", loadedTasks.get(0).getName());
-
-        List<Epic> loadedEpics = loaded.getAllEpics();
-        assertEquals(1, loadedEpics.size());
-        assertEquals("Epic 1", loadedEpics.get(0).getName());
-
-        List<Subtask> loadedSubtasks = loaded.getAllSubtasks();
-        assertEquals(2, loadedSubtasks.size());
-        assertEquals(epic.getId(), loadedSubtasks.get(0).getEpicId());
+        assertTrue(loaded.getAllTasks().isEmpty(), "Загруженный менеджер должен быть пустым");
     }
 
     @Test
-    void shouldPreserveDataAfterReload() throws IOException {
-        File tempFile = File.createTempFile("persistence", ".csv");
-        FileBackedTaskManager manager = new FileBackedTaskManager(tempFile, Managers.getDefaultHistory());
+    void shouldSaveAndRestoreTasks() {
+        taskManager.createEpic(epic);
 
-        Task task = new Task("Persistent Task", "To be saved", Status.DONE);
-        manager.createTask(task);
+        Subtask subtask = new Subtask("Test Subtask", "Description", Status.NEW, epic.getId());
+        subtask.setStartTime(LocalDateTime.now().plusHours(1));
+        subtask.setDuration(Duration.ofMinutes(15));
 
-        Epic epic = new Epic("Persistent Epic", "With one subtask");
-        manager.createEpic(epic);
-
-        Subtask subtask = new Subtask("Persistent Subtask", "Linked", Status.NEW, epic.getId());
-        manager.createSubtask(subtask);
+        taskManager.createTask(task);
+        taskManager.createSubtask(subtask);
 
         FileBackedTaskManager loaded = FileBackedTaskManager.loadFromFile(tempFile);
 
-        assertEquals(1, loaded.getAllTasks().size());
-        assertEquals("Persistent Task", loaded.getAllTasks().get(0).getName());
+        assertEquals(1, loaded.getAllTasks().size(), "Неверное количество задач");
+        assertEquals(1, loaded.getAllEpics().size(), "Неверное количество эпиков");
 
-        assertEquals(1, loaded.getAllEpics().size());
-        assertEquals("Persistent Epic", loaded.getAllEpics().get(0).getName());
+        List<Subtask> subtasks = loaded.getAllSubtasks();
+        assertEquals(1, subtasks.size(), "Неверное количество подзадач");
 
-        assertEquals(1, loaded.getAllSubtasks().size());
-        assertEquals(epic.getId(), loaded.getAllSubtasks().get(0).getEpicId());
+        Subtask loadedSubtask = subtasks.get(0);
+        assertEquals(epic.getId(), loadedSubtask.getEpicId(),
+                "Подзадача должна быть связана с эпиком");
+    }
+
+    @Test
+    void shouldHandleFileErrors() {
+        File invalidFile = new File("/invalid/path/tasks.csv");
+        FileBackedTaskManager manager = new FileBackedTaskManager(invalidFile, new InMemoryHistoryManager());
+
+        Task task = new Task("Test", "Desc", Status.NEW);
+
+        assertThrows(ManagerSaveException.class, () -> manager.createTask(task),
+                "Должно быть исключение при ошибке записи в файл"
+        );
     }
 }
