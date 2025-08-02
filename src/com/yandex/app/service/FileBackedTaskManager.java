@@ -39,29 +39,43 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     public static FileBackedTaskManager loadFromFile(File file) {
         HistoryManager historyManager = Managers.getDefaultHistory();
         FileBackedTaskManager manager = new FileBackedTaskManager(file, historyManager);
+        Map<Integer, Epic> tempEpics = new HashMap<>();
 
         try {
             List<String> lines = Files.readAllLines(file.toPath());
+            int maxId = 0;
 
             for (int i = 1; i < lines.size(); i++) {
                 String line = lines.get(i);
                 if (line.isBlank()) continue;
 
                 Task task = taskFromString(line);
+                maxId = Math.max(maxId, task.getId());
+
                 if (task instanceof Epic) {
-                    manager.restoreTask(task);
+                    tempEpics.put(task.getId(), (Epic) task);
+                    manager.getEpicsMap().put(task.getId(), (Epic) task);
+                } else if (task instanceof Subtask) {
+                    manager.getSubtasksMap().put(task.getId(), (Subtask) task);
+                } else {
+                    manager.getTasksMap().put(task.getId(), task);
                 }
             }
 
-            for (int i = 1; i < lines.size(); i++) {
-                String line = lines.get(i);
-                if (line.isBlank()) continue;
+            manager.setIdCounter(maxId + 1);
 
-                Task task = taskFromString(line);
-                if (!(task instanceof Epic)) {
-                    manager.restoreTask(task);
+            for (Subtask subtask : manager.getSubtasksMap().values()) {
+                Epic epic = tempEpics.get(subtask.getEpicId());
+                if (epic != null) {
+                    epic.addSubtask(subtask.getId());
                 }
             }
+
+            for (Epic epic : manager.getAllEpics()) {
+                epic.updateTimeFields(manager.getSubtasksMap());
+                manager.updateEpicStatus(epic.getId());
+            }
+
         } catch (IOException e) {
             throw new ManagerSaveException("Ошибка при загрузке данных из файла", e);
         }
@@ -215,9 +229,6 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
             case EPIC:
                 Epic epic = new Epic(name, description);
                 epic.setId(id);
-                epic.setStatus(status);
-                epic.setDuration(duration);
-                epic.setStartTime(startTime);
                 return epic;
             case SUBTASK:
                 int epicId = Integer.parseInt(fields.get(5));
@@ -238,29 +249,27 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
 
         for (int i = 0; i < line.length(); i++) {
             char c = line.charAt(i);
-            if (inQuotes) {
-                if (c == '\"') {
-                    if (i + 1 < line.length() && line.charAt(i + 1) == '\"') {
-                        sb.append('\"');
-                        i++;
-                    } else {
-                        inQuotes = false;
-                    }
+
+            if (c == '"') {
+                if (inQuotes && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                    sb.append('"');
+                    i++;
                 } else {
-                    sb.append(c);
+                    inQuotes = !inQuotes;
                 }
+            } else if (c == ',' && !inQuotes) {
+                fields.add(sb.toString());
+                sb.setLength(0);
             } else {
-                if (c == '\"') {
-                    inQuotes = true;
-                } else if (c == ',') {
-                    fields.add(sb.toString());
-                    sb.setLength(0);
-                } else {
-                    sb.append(c);
-                }
+                sb.append(c);
             }
         }
         fields.add(sb.toString());
+
+        while (fields.size() < 8) {
+            fields.add("");
+        }
+
         return fields;
     }
 }
