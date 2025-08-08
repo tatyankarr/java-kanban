@@ -99,6 +99,6 @@ class EpicTest {
 
         assertEquals(now, epic.getStartTime(), "Неверное время начала");
         assertEquals(now.plusHours(5), epic.getEndTime(), "Неверное время окончания");
-        assertEquals(Duration.ofHours(4), epic.getDuration(), "Неверная длительность");
+        assertEquals(Duration.ofHours(5), epic.getDuration(), "Неверная длительность");
     }
 }

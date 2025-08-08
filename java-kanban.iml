@@ -57,5 +57,6 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="opencsv" level="project" />
+    <orderEntry type="library" name="google.code.gson" level="project" />
   </component>
 </module>

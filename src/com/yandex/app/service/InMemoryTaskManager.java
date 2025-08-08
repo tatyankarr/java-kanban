@@ -98,6 +98,15 @@ public class InMemoryTaskManager implements TaskManager {
     }
 
     @Override
+    public List<Integer> getSubtaskIdsOfEpic(int id) {
+        Epic epic = epics.get(id);
+        if (epic == null) {
+            return null;
+        }
+        return epic.getSubtaskId();
+    }
+
+    @Override
     public void createTask(Task task) {
         if (hasIntersection(task)) {
             throw new IllegalArgumentException("Задача пересекается с другой по времени");
