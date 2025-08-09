@@ -22,14 +22,14 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
     protected void save() {
         try (Writer writer = new FileWriter(file)) {
             writer.write("id,type,name,status,description,epic,duration,startTime\n");
-            for (Task task : getAllTasks()) {
+
+            List<Task> allTasks = new ArrayList<>();
+            allTasks.addAll(getAllTasks());
+            allTasks.addAll(getAllEpics());
+            allTasks.addAll(getAllSubtasks());
+
+            for (Task task : allTasks) {
                 writer.write(taskToString(task) + "\n");
-            }
-            for (Epic epic : getAllEpics()) {
-                writer.write(taskToString(epic) + "\n");
-            }
-            for (Subtask subtask : getAllSubtasks()) {
-                writer.write(taskToString(subtask) + "\n");
             }
         } catch (IOException e) {
             throw new ManagerSaveException("Ошибка при сохранении данных в файл", e);
@@ -72,16 +72,11 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
             }
 
             for (Epic epic : manager.getAllEpics()) {
-                epic.updateTimeFields(manager.getSubtasksMap());
                 manager.updateEpicStatus(epic.getId());
             }
 
         } catch (IOException e) {
             throw new ManagerSaveException("Ошибка при загрузке данных из файла", e);
-        }
-
-        for (Epic epic : manager.getAllEpics()) {
-            epic.updateTimeFields(manager.getSubtasksMap());
         }
 
         return manager;
@@ -205,19 +200,66 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
 
         if (fields.size() < 8) {
             throw new ManagerSaveException(
-                    "Ошибка разбора строки задачи: ожидалось 8 полей, но получено " +
-                            fields.size() + ". Строка: " + value
+                    String.format(
+                            "Ошибка разбора CSV: ожидалось 8 полей, получено %d. Строка: [%s]. Разобранные поля: %s",
+                            fields.size(), value, fields
+                    )
             );
         }
 
-        int id = Integer.parseInt(fields.get(0));
-        TaskType type = TaskType.valueOf(fields.get(1));
+        int id;
+        try {
+            id = Integer.parseInt(fields.get(0));
+        } catch (NumberFormatException e) {
+            throw new ManagerSaveException(
+                    String.format("Некорректный формат ID задачи: '%s'. Строка: %s", fields.get(0), value), e
+            );
+        }
+
+        TaskType type;
+        try {
+            type = TaskType.valueOf(fields.get(1));
+        } catch (IllegalArgumentException e) {
+            throw new ManagerSaveException(
+                    String.format("Неизвестный тип задачи: '%s'. Строка: %s", fields.get(1), value), e
+            );
+        }
+
         String name = fields.get(2);
-        Status status = Status.valueOf(fields.get(3));
+        Status status;
+        try {
+            status = Status.valueOf(fields.get(3));
+        } catch (IllegalArgumentException e) {
+            throw new ManagerSaveException(
+                    String.format("Неизвестный статус задачи: '%s'. Строка: %s", fields.get(3), value), e
+            );
+        }
+
         String description = fields.get(4);
-        long durationMinutes = fields.get(6).isEmpty() ? 0 : Long.parseLong(fields.get(6));
-        Duration duration = Duration.ofMinutes(durationMinutes);
-        LocalDateTime startTime = fields.get(7).isEmpty() ? null : LocalDateTime.parse(fields.get(7));
+
+        Duration duration;
+        try {
+            long durationMinutes = fields.get(6).isEmpty() ? 0 : Long.parseLong(fields.get(6));
+            duration = Duration.ofMinutes(durationMinutes);
+        } catch (NumberFormatException e) {
+            throw new ManagerSaveException(
+                    String.format("Некорректный формат duration: '%s'. Строка: %s", fields.get(6), value), e
+            );
+        }
+
+        LocalDateTime startTime = null;
+        if (!fields.get(7).isEmpty()) {
+            try {
+                startTime = LocalDateTime.parse(fields.get(7));
+            } catch (java.time.format.DateTimeParseException e) {
+                throw new ManagerSaveException(
+                        String.format(
+                                "Некорректный формат даты startTime (ожидается ISO-8601, например 2023-07-21T14:30): '%s'. Строка: %s",
+                                fields.get(7), value
+                        ), e
+                );
+            }
+        }
 
         switch (type) {
             case TASK:
@@ -231,7 +273,14 @@ public class FileBackedTaskManager extends InMemoryTaskManager {
                 epic.setId(id);
                 return epic;
             case SUBTASK:
-                int epicId = Integer.parseInt(fields.get(5));
+                int epicId;
+                try {
+                    epicId = Integer.parseInt(fields.get(5));
+                } catch (NumberFormatException e) {
+                    throw new ManagerSaveException(
+                            String.format("Некорректный формат epicId: '%s'. Строка: %s", fields.get(5), value), e
+                    );
+                }
                 Subtask subtask = new Subtask(name, description, status, epicId);
                 subtask.setId(id);
                 subtask.setDuration(duration);

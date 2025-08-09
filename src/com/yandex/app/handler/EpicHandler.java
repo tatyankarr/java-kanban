@@ -33,55 +33,17 @@ public class EpicHandler extends BaseHttpHandler {
         try {
             String method = exchange.getRequestMethod();
             URI uri = exchange.getRequestURI();
-            String query = uri.getQuery();
+            String path = uri.getPath();
 
             switch (method) {
                 case "GET":
-                    if (query == null) {
-                        sendText(exchange, gson.toJson(manager.getAllEpics()));
-                    } else {
-                        int id = Integer.parseInt(query.split("=")[1]);
-                        Epic epic = manager.getEpic(id);
-                        if (epic == null) {
-                            sendNotFound(exchange);
-                        } else {
-                            sendText(exchange, gson.toJson(epic));
-                        }
-                    }
+                    handleGet(exchange, path);
                     break;
                 case "POST":
-                    String body = readRequestBody(exchange);
-                    try {
-                        Epic epic = gson.fromJson(body, Epic.class);
-                        if (epic == null) {
-                            sendServerError(exchange);
-                            return;
-                        }
-                        if (epic.getId() == 0 || manager.getEpic(epic.getId()) == null) {
-                            manager.createEpic(epic);
-                            sendCreated(exchange);
-                        } else {
-                            manager.updateEpic(epic);
-                            sendCreated(exchange);
-                        }
-                    } catch (com.google.gson.JsonSyntaxException e) {
-                        e.printStackTrace();
-                        sendServerError(exchange);
-                    }
+                    handlePost(exchange);
                     break;
                 case "DELETE":
-                    if (query == null) {
-                        manager.clearAllEpics();
-                        sendText(exchange, "All epics deleted");
-                    } else {
-                        int id = Integer.parseInt(query.split("=")[1]);
-                        if (manager.getEpic(id) == null) {
-                            sendNotFound(exchange);
-                        } else {
-                            manager.removeEpic(id);
-                            sendText(exchange, "Epic deleted");
-                        }
-                    }
+                    handleDelete(exchange, path);
                     break;
                 default:
                     sendServerError(exchange);
@@ -89,6 +51,66 @@ public class EpicHandler extends BaseHttpHandler {
         } catch (Exception e) {
             e.printStackTrace();
             sendServerError(exchange);
+        }
+    }
+
+    private void handleGet(HttpExchange exchange, String path) throws IOException {
+        String[] pathSegments = path.split("/");
+        if (pathSegments.length == 3 && pathSegments[1].equals("epics")) {
+            try {
+                int id = Integer.parseInt(pathSegments[2]);
+                Epic epic = manager.getEpic(id);
+                if (epic == null) {
+                    sendNotFound(exchange);
+                } else {
+                    sendText(exchange, gson.toJson(epic));
+                }
+            } catch (NumberFormatException e) {
+                sendNotFound(exchange);
+            }
+        } else {
+            sendText(exchange, gson.toJson(manager.getAllEpics()));
+        }
+    }
+
+    private void handlePost(HttpExchange exchange) throws IOException {
+        String body = readRequestBody(exchange);
+        try {
+            Epic epic = gson.fromJson(body, Epic.class);
+            if (epic == null) {
+                sendServerError(exchange);
+                return;
+            }
+            if (epic.getId() == 0 || manager.getEpic(epic.getId()) == null) {
+                manager.createEpic(epic);
+                sendCreated(exchange);
+            } else {
+                manager.updateEpic(epic);
+                sendCreated(exchange);
+            }
+        } catch (com.google.gson.JsonSyntaxException e) {
+            e.printStackTrace();
+            sendServerError(exchange);
+        }
+    }
+
+    private void handleDelete(HttpExchange exchange, String path) throws IOException {
+        String[] pathSegments = path.split("/");
+        if (pathSegments.length == 3 && pathSegments[1].equals("epics")) {
+            try {
+                int id = Integer.parseInt(pathSegments[2]);
+                if (manager.getEpic(id) == null) {
+                    sendNotFound(exchange);
+                } else {
+                    manager.removeEpic(id);
+                    sendText(exchange, "Epic deleted");
+                }
+            } catch (NumberFormatException e) {
+                sendNotFound(exchange);
+            }
+        } else {
+            manager.clearAllEpics();
+            sendText(exchange, "All epics deleted");
         }
     }
 

@@ -33,17 +33,17 @@ public class SubtaskHandler extends BaseHttpHandler {
         try {
             String method = exchange.getRequestMethod();
             URI uri = exchange.getRequestURI();
-            String query = uri.getQuery();
+            String path = uri.getPath();
 
             switch (method) {
                 case "GET":
-                    handleGet(exchange, query);
+                    handleGet(exchange, path);
                     break;
                 case "POST":
                     handlePost(exchange);
                     break;
                 case "DELETE":
-                    handleDelete(exchange, query);
+                    handleDelete(exchange, path);
                     break;
                 default:
                     sendServerError(exchange);
@@ -54,17 +54,22 @@ public class SubtaskHandler extends BaseHttpHandler {
         }
     }
 
-    private void handleGet(HttpExchange exchange, String query) throws IOException {
-        if (query == null) {
-            sendText(exchange, gson.toJson(manager.getAllSubtasks()));
-        } else {
-            int id = extractId(query);
-            Subtask subtask = manager.getSubtask(id);
-            if (subtask == null) {
+    private void handleGet(HttpExchange exchange, String path) throws IOException {
+        String[] pathSegments = path.split("/");
+        if (pathSegments.length == 3 && pathSegments[1].equals("subtasks")) {
+            try {
+                int id = Integer.parseInt(pathSegments[2]);
+                Subtask subtask = manager.getSubtask(id);
+                if (subtask == null) {
+                    sendNotFound(exchange);
+                } else {
+                    sendText(exchange, gson.toJson(subtask));
+                }
+            } catch (NumberFormatException e) {
                 sendNotFound(exchange);
-            } else {
-                sendText(exchange, gson.toJson(subtask));
             }
+        } else {
+            sendText(exchange, gson.toJson(manager.getAllSubtasks()));
         }
     }
 
@@ -94,23 +99,24 @@ public class SubtaskHandler extends BaseHttpHandler {
         }
     }
 
-    private void handleDelete(HttpExchange exchange, String query) throws IOException {
-        if (query == null) {
+    private void handleDelete(HttpExchange exchange, String path) throws IOException {
+        String[] pathSegments = path.split("/");
+        if (pathSegments.length == 3 && pathSegments[1].equals("subtasks")) {
+            try {
+                int id = Integer.parseInt(pathSegments[2]);
+                if (manager.getSubtask(id) == null) {
+                    sendNotFound(exchange);
+                } else {
+                    manager.removeSubtask(id);
+                    sendText(exchange, "Subtask deleted");
+                }
+            } catch (NumberFormatException e) {
+                sendNotFound(exchange);
+            }
+        } else {
             manager.clearAllSubtasks();
             sendText(exchange, "All subtasks deleted");
-        } else {
-            int id = extractId(query);
-            if (manager.getSubtask(id) == null) {
-                sendNotFound(exchange);
-            } else {
-                manager.removeSubtask(id);
-                sendText(exchange, "Subtask deleted");
-            }
         }
-    }
-
-    private int extractId(String query) {
-        return Integer.parseInt(query.split("=")[1]);
     }
 
     private static class DurationTypeAdapter extends TypeAdapter<Duration> {

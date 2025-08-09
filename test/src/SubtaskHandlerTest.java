@@ -104,7 +104,7 @@ class SubtaskHandlerTest {
         manager.createSubtask(subtask);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/subtasks?id=2"))
+                .uri(URI.create("http://localhost:8080/subtasks/2"))
                 .GET()
                 .build();
 
@@ -119,7 +119,7 @@ class SubtaskHandlerTest {
     @Test
     void shouldReturn404ForNonExistentSubtask() throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/subtasks?id=999"))
+                .uri(URI.create("http://localhost:8080/subtasks/999"))
                 .GET()
                 .build();
 

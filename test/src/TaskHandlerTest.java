@@ -102,7 +102,7 @@ class TaskHandlerTest {
         manager.createTask(task);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/tasks?id=1"))
+                .uri(URI.create("http://localhost:8080/tasks/1"))
                 .GET()
                 .build();
 
@@ -116,7 +116,7 @@ class TaskHandlerTest {
     @Test
     void shouldReturn404ForNonExistentTask() throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/tasks?id=999"))
+                .uri(URI.create("http://localhost:8080/tasks/999"))
                 .GET()
                 .build();
 

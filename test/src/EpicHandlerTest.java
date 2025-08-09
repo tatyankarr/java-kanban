@@ -99,7 +99,7 @@ class EpicHandlerTest {
         manager.createEpic(epic);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/epics?id=1"))
+                .uri(URI.create("http://localhost:8080/epics/1"))
                 .GET()
                 .build();
 
@@ -113,7 +113,7 @@ class EpicHandlerTest {
     @Test
     void shouldReturn404ForNonExistentEpic() throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/epics?id=999"))
+                .uri(URI.create("http://localhost:8080/epics/999"))
                 .GET()
                 .build();
 
@@ -196,7 +196,7 @@ class EpicHandlerTest {
         manager.createSubtask(subtask2);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/epics?id=" + epic.getId()))
+                .uri(URI.create("http://localhost:8080/epics/" + epic.getId()))
                 .GET()
                 .build();
 

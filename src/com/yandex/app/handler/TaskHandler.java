@@ -33,17 +33,17 @@ public class TaskHandler extends BaseHttpHandler {
         try {
             String method = exchange.getRequestMethod();
             URI uri = exchange.getRequestURI();
-            String query = uri.getQuery();
+            String path = uri.getPath();
 
             switch (method) {
                 case "GET":
-                    handleGet(exchange, query);
+                    handleGet(exchange, path);
                     break;
                 case "POST":
                     handlePost(exchange);
                     break;
                 case "DELETE":
-                    handleDelete(exchange, query);
+                    handleDelete(exchange, path);
                     break;
                 default:
                     sendServerError(exchange);
@@ -54,17 +54,22 @@ public class TaskHandler extends BaseHttpHandler {
         }
     }
 
-    private void handleGet(HttpExchange exchange, String query) throws IOException {
-        if (query == null) {
-            sendText(exchange, gson.toJson(manager.getAllTasks()));
-        } else {
-            int id = extractId(query);
-            Task task = manager.getTask(id);
-            if (task == null) {
+    private void handleGet(HttpExchange exchange, String path) throws IOException {
+        String[] pathSegments = path.split("/");
+        if (pathSegments.length == 3 && pathSegments[1].equals("tasks")) {
+            try {
+                int id = Integer.parseInt(pathSegments[2]);
+                Task task = manager.getTask(id);
+                if (task == null) {
+                    sendNotFound(exchange);
+                } else {
+                    sendText(exchange, gson.toJson(task));
+                }
+            } catch (NumberFormatException e) {
                 sendNotFound(exchange);
-            } else {
-                sendText(exchange, gson.toJson(task));
             }
+        } else {
+            sendText(exchange, gson.toJson(manager.getAllTasks()));
         }
     }
 
@@ -88,23 +93,24 @@ public class TaskHandler extends BaseHttpHandler {
         }
     }
 
-    private void handleDelete(HttpExchange exchange, String query) throws IOException {
-        if (query == null) {
+    private void handleDelete(HttpExchange exchange, String path) throws IOException {
+        String[] pathSegments = path.split("/");
+        if (pathSegments.length == 3 && pathSegments[1].equals("tasks")) {
+            try {
+                int id = Integer.parseInt(pathSegments[2]);
+                if (manager.getTask(id) == null) {
+                    sendNotFound(exchange);
+                } else {
+                    manager.removeTask(id);
+                    sendText(exchange, "Task deleted");
+                }
+            } catch (NumberFormatException e) {
+                sendNotFound(exchange);
+            }
+        } else {
             manager.clearAllTasks();
             sendText(exchange, "All tasks deleted");
-        } else {
-            int id = extractId(query);
-            if (manager.getTask(id) == null) {
-                sendNotFound(exchange);
-            } else {
-                manager.removeTask(id);
-                sendText(exchange, "Task deleted");
-            }
         }
-    }
-
-    private int extractId(String query) {
-        return Integer.parseInt(query.split("=")[1]);
     }
 
     private static class DurationTypeAdapter extends TypeAdapter<Duration> {

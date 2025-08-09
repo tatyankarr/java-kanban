@@ -22,7 +22,7 @@ public class PrioritizedHandler extends BaseHttpHandler {
         this.gson = new GsonBuilder()
                 .registerTypeAdapter(Duration.class, new DurationTypeAdapter())
                 .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeTypeAdapter())
-                .excludeFieldsWithoutExposeAnnotation() // Игнорировать поля без @Expose
+                .excludeFieldsWithoutExposeAnnotation()
                 .create();
     }
 
