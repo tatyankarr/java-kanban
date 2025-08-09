@@ -1,4 +1,4 @@
-package com.yandex.app.tests;
+package src;
 
 import com.yandex.app.model.Epic;
 import com.yandex.app.service.InMemoryHistoryManager;
@@ -35,10 +35,15 @@ class SubtaskTest {
 
     @Test
     void subtaskCannotBeItsOwnEpic() {
-        Subtask subtask = new Subtask("Subtask title", "desc", Status.NEW, 0);
-        subtask.setId(5);
-        subtask.setEpicId(5);
-        assertNotEquals(subtask.getId(), subtask.getEpicId(), "Subtask не может быть своим же эпиком");
+        Subtask subtask = new Subtask("Sub", "Desc", Status.NEW, 1);
+        subtask.setId(1);
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> subtask.setEpicId(1)
+        );
+
+        assertEquals("Subtask не может быть своим же эпиком: 1", exception.getMessage());
     }
 
     @Test

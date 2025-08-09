@@ -1,13 +1,19 @@
-package com.yandex.app.tests;
+package src;
 
 import static org.junit.jupiter.api.Assertions.*;
+
+import com.yandex.app.enums.Status;
 import com.yandex.app.model.Epic;
+import com.yandex.app.model.Subtask;
 import com.yandex.app.service.InMemoryHistoryManager;
 import com.yandex.app.service.InMemoryTaskManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 class EpicTest {
     private InMemoryTaskManager taskManager;
@@ -72,5 +78,27 @@ class EpicTest {
         assertEquals(originalDescription, storedEpic.getDescription(), "Описание эпика должно остаться неизменным");
 
         assertTrue(storedEpic.getId() > 0, "ID эпика должен быть установлен менеджером");
+    }
+
+    @Test
+    void shouldUpdateTimeFields() {
+        LocalDateTime now = LocalDateTime.now();
+        Epic epic = new Epic("Epic", "Desc");
+
+        Subtask sub1 = new Subtask("Sub1", "Desc", Status.NEW, 1);
+        sub1.setStartTime(now);
+        sub1.setDuration(Duration.ofHours(1));
+
+        Subtask sub2 = new Subtask("Sub2", "Desc", Status.NEW, 1);
+        sub2.setStartTime(now.plusHours(2));
+        sub2.setDuration(Duration.ofHours(3));
+
+        epic.addSubtask(1);
+        epic.addSubtask(2);
+        epic.updateTimeFields(Map.of(1, sub1, 2, sub2));
+
+        assertEquals(now, epic.getStartTime(), "Неверное время начала");
+        assertEquals(now.plusHours(5), epic.getEndTime(), "Неверное время окончания");
+        assertEquals(Duration.ofHours(5), epic.getDuration(), "Неверная длительность");
     }
 }
